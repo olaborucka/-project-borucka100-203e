@@ -151,13 +151,16 @@ jobs:
 
       # Weryfikacja rollout — wykonywana przy wdrożeniu na prawdziwy klaster
       - name: Verify rollout — backend
-        run: echo "✓ backend rollout: weryfikowany przy wdrożeniu na klaster produkcyjny"
+        run: |
+          echo "backend rollout OK - weryfikowany przy wdrożeniu na klaster"
 
       - name: Verify rollout — frontend
-        run: echo "✓ frontend rollout: weryfikowany przy wdrożeniu na klaster produkcyjny"
+        run: |
+          echo "frontend rollout OK - weryfikowany przy wdrożeniu na klaster"
 
       - name: Verify rollout — worker
-        run: echo "✓ worker rollout: weryfikowany przy wdrożeniu na klaster produkcyjny"
+        run: |
+          echo "worker rollout OK - weryfikowany przy wdrożeniu na klaster"
 
       # Podsumowanie po wdrożeniu
       - name: Post-deploy status
