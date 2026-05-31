@@ -8,6 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_REPO: ghcr.io/olaborucka/shop
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Job 1: build-and-push
@@ -50,7 +51,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}
+          images: ${{ env.IMAGE_REPO }}/${{ matrix.service }}
           tags: |
             type=sha,prefix=,format=short
             type=raw,value=latest,enable={{is_default_branch}}
@@ -130,7 +131,7 @@ jobs:
       - name: Update image tags in kustomize
         run: |
           cd k8s/overlays/prod
-          REPO=${{ env.REGISTRY }}/${{ github.repository }}
+          REPO=${{ env.IMAGE_REPO }}
           SHA=${{ steps.sha.outputs.short }}
           kustomize edit set image \
             ghcr.io/olaborucka/shop/backend=${REPO}/backend:${SHA} \
