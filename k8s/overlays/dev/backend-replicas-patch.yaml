@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: shop
+spec:
+  replicas: 1          # dev: 1 replika (base ma 2)

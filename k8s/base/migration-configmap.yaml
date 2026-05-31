@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-migration
+  namespace: shop
+data:
+  init.sql: |
+    -- Migracja inicjalna bazy danych sklepu
+    CREATE TABLE IF NOT EXISTS products (
+        id          SERIAL PRIMARY KEY,
+        name        VARCHAR(255)   NOT NULL,
+        price       DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+        description TEXT           DEFAULT '',
+        in_stock    BOOLEAN        DEFAULT TRUE,
+        created_at  TIMESTAMP      DEFAULT NOW()
+    );
+
+    -- Dane przykładowe
+    INSERT INTO products (name, price, description, in_stock) VALUES
+        ('Kawa Arabica 250g',      29.99, 'Kawa ziarnista z Etiopii',       TRUE),
+        ('Herbata Earl Grey 100g', 15.50, 'Czarna herbata z bergamotką',    TRUE),
+        ('Czekolada Gorzka 70%',    8.99, 'Belgijska czekolada, 100g',      TRUE),
+        ('Mleko Owsiane 1L',        6.49, 'Roślinny napój owsiany',         TRUE),
+        ('Syrop Klonowy 250ml',    24.90, 'Naturalny syrop Grade A',        FALSE)
+    ON CONFLICT DO NOTHING;

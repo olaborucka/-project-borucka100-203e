@@ -1,0 +1,84 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: shop
+  labels:
+    app: db-migrate
+    component: migration
+spec:
+  # Job uruchamia migrację raz przy deployu
+  # Przy ponownym apply: kubectl delete job db-migrate -n shop && kubectl apply -f ...
+  ttlSecondsAfterFinished: 300   # usuń Job 5 min po zakończeniu
+  backoffLimit: 3                # max 3 próby przy błędzie
+
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+        component: migration
+    spec:
+      restartPolicy: OnFailure
+
+      # initContainer — czeka aż postgres będzie gotowy (wymaganie: initContainer/Job)
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Waiting for postgres to be ready..."
+                sleep 3
+              done
+              echo "Postgres is ready, running migration..."
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+
+      containers:
+        - name: migrate
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              psql -h postgres -U $POSTGRES_USER -d $POSTGRES_DB -f /migrations/init.sql
+              echo "Migration completed successfully!"
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_DB
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: migration-sql
+              mountPath: /migrations
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+      volumes:
+        - name: migration-sql
+          configMap:
+            name: db-migration

@@ -1,0 +1,101 @@
+# NetworkPolicy — izolacja sieciowa między podami (bonus +2.5%)
+# Zasada: domyślnie deny-all, zezwól tylko na wymagane połączenia
+
+# ── 1. Postgres: akceptuje ruch TYLKO z backendu, workera i job migracji ──────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-allow-backend-worker
+  namespace: shop
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend      # backend API
+        - podSelector:
+            matchLabels:
+              app: worker       # worker background
+        - podSelector:
+            matchLabels:
+              app: db-migrate   # job migracji
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# ── 2. Redis: akceptuje ruch TYLKO z backendu i workera ──────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-allow-backend-worker
+  namespace: shop
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+        - podSelector:
+            matchLabels:
+              app: worker
+      ports:
+        - protocol: TCP
+          port: 6379
+
+---
+# ── 3. Backend: akceptuje ruch z frontendu i Ingress controllera ──────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-allow-frontend-ingress
+  namespace: shop
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# ── 4. Frontend: akceptuje ruch z Ingress controllera ────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-allow-ingress
+  namespace: shop
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080

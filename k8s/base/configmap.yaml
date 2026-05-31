@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shop-config
+  namespace: shop
+data:
+  # Konfiguracja niepoufna — zgodnie z wymaganiami projektu
+  # Hasła i tokeny są w Secret (shop-secret), nie tutaj
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "shop"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  WORKER_INTERVAL: "60"
+  PORT: "3000"

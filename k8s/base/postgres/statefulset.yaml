@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: shop
+  labels:
+    app: postgres
+    component: database
+spec:
+  serviceName: postgres          # headless service wymagany przez StatefulSet
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+      annotations:
+        # Adnotacje Prometheus — obserwow alność
+        prometheus.io/scrape: "false"  # postgres nie udostępnia /metrics natywnie
+    spec:
+      # SecurityContext — postgres uruchamia się jako user postgres (UID 999)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+
+      # initContainer — czeka aż katalog danych będzie dostępny
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown -R 999:999 /var/lib/postgresql/data']
+          securityContext:
+            runAsUser: 0              # root tylko w initContainer (fix chown)
+            runAsNonRoot: false
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+
+          # Konfiguracja z ConfigMap i Secret
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: shop-secret
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+          # Liveness probe — czy postgres żyje
+          livenessProbe:
+            exec:
+              command: ['pg_isready', '-U', 'shop', '-d', 'shop']
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe — czy postgres jest gotowy na połączenia
+          readinessProbe:
+            exec:
+              command: ['pg_isready', '-U', 'shop', '-d', 'shop']
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+  # PersistentVolumeClaim — trwałość danych bazy (wymaganie projektu)
+  # Dane pozostają dostępne po restarcie poda
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes:
+          - ReadWriteOnce          # odczyt i zapis przez jeden węzeł (baza danych)
+        resources:
+          requests:
+            storage: 1Gi

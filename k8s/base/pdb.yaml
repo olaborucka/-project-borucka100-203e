@@ -1,0 +1,17 @@
+# PodDisruptionBudget — ochrona backendu podczas aktualizacji klastra (bonus +2.5%)
+# Gwarantuje że zawsze minimum 1 replika backendu jest dostępna
+# podczas: kubectl drain, aktualizacji węzłów, konserwacji klastra
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  namespace: shop
+spec:
+  minAvailable: 1               # minimum 1 pod musi być dostępny
+  selector:
+    matchLabels:
+      app: backend
+
+# Sprawdzenie: kubectl get pdb -n shop
+# NAME          MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+# backend-pdb   1               N/A               1                     5m

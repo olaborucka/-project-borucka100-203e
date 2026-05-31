@@ -1,0 +1,178 @@
+name: CI/CD — Build, Test, Push, Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Job 1: build-and-push
+# Buduje obrazy dla 3 serwisów (matrix), uruchamia etap test,
+# publikuje do ghcr.io z tagiem SHA i :latest
+# ══════════════════════════════════════════════════════════════════════════════
+jobs:
+  build-and-push:
+    name: Build & Push — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write           # wymagane do push na ghcr.io
+
+    strategy:
+      fail-fast: false          # buduj pozostałe serwisy nawet jeśli jeden failuje
+      matrix:
+        service: [backend, frontend, worker]
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      # Ustaw Docker Buildx (BuildKit) — wymagany do multi-platform i --target
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Zaloguj się do GitHub Container Registry (ghcr.io)
+      # GITHUB_TOKEN jest automatycznie dostępny — nie trzeba dodawać w Secrets
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Ustaw metadane OCI (jak na lab05 — org.opencontainers.image.*)
+      # Generuje tagi i etykiety automatycznie na podstawie kontekstu Git
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Etap testowy: uruchom tylko etap "test" z multi-stage Dockerfile
+      # Jeśli npm test (node --check) zwróci != 0, pipeline zatrzymuje się
+      # frontend nie ma etapu test — pomijamy
+      - name: Run test stage
+        if: matrix.service != 'frontend'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          target: test            # zatrzymaj się na etapie test (nie buduj production)
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Buduj obraz produkcyjny i pushuj do ghcr.io
+      # Multi-platform: linux/amd64 + linux/arm64 (jak na lab05 z buildx)
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}   # push tylko na main
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # OCI labels z --build-arg (jak na lab05)
+          build-args: |
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=1.0.0
+            GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # Job 2: deploy
+  # Uruchamiany tylko na branchu main po pomyślnym buildzie
+  # Aktualizuje tagi obrazów przez kustomize edit set image,
+  # aplikuje manifesty i weryfikuje rollout
+  # ════════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      # kubectl — wymagane do kubectl apply i rollout status
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      # kustomize — wymagane do kustomize edit set image
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      # Skonfiguruj dostęp do klastra Kubernetes
+      # KUBECONFIG_B64 — Secret w repo: base64-encoded plik kubeconfig
+      # Jak dodać: Settings → Secrets → Actions → New repository secret
+      # Jak zakodować: cat ~/.kube/config | base64 | pbcopy
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      # Skróć SHA do 7 znaków (standardowy format git short SHA)
+      - name: Set short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      # Zaktualizuj tagi obrazów w kustomize overlays/prod
+      # kustomize edit set image nadpisuje pole images[].newTag
+      - name: Update image tags in kustomize
+        run: |
+          cd k8s/overlays/prod
+          REPO=${{ env.REGISTRY }}/${{ github.repository }}
+          SHA=${{ steps.sha.outputs.short }}
+          kustomize edit set image \
+            ghcr.io/olaborucka/shop/backend=${REPO}/backend:${SHA} \
+            ghcr.io/olaborucka/shop/frontend=${REPO}/frontend:${SHA} \
+            ghcr.io/olaborucka/shop/worker=${REPO}/worker:${SHA}
+          echo "=== Zaktualizowane kustomization.yaml ==="
+          cat kustomization.yaml
+
+      # Zastosuj manifesty Kubernetes przez Kustomize
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -k k8s/overlays/prod
+          echo "Manifesty zastosowane pomyślnie"
+
+      # Sprawdź rollout po wdrożeniu (wymaganie projektu)
+      # --timeout=5m — czekaj max 5 minut na zakończenie rollout
+      - name: Verify rollout — backend
+        run: |
+          kubectl rollout status deployment/backend \
+            -n shop --timeout=5m
+          echo "✓ backend rollout OK"
+
+      - name: Verify rollout — frontend
+        run: |
+          kubectl rollout status deployment/frontend \
+            -n shop --timeout=5m
+          echo "✓ frontend rollout OK"
+
+      - name: Verify rollout — worker
+        run: |
+          kubectl rollout status deployment/worker \
+            -n shop --timeout=5m
+          echo "✓ worker rollout OK"
+
+      # Podsumowanie po wdrożeniu
+      - name: Post-deploy status
+        run: |
+          echo "=== Pody w namespace shop ==="
+          kubectl get pods -n shop
+          echo ""
+          echo "=== Deploymenty ==="
+          kubectl get deployments -n shop
+          echo ""
+          echo "=== Serwisy ==="
+          kubectl get services -n shop

@@ -1,0 +1,9 @@
+node_modules
+*.py
+requirements.txt
+.env
+.env.*
+*.log
+.git/
+.gitignore
+README.md

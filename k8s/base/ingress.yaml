@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-ingress
+  namespace: shop
+  labels:
+    app: shop
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+spec:
+  ingressClassName: nginx
+
+  rules:
+    # Ruch zewnętrzny → frontend (nginx wewnątrz kontenera proxy-uje /api/ do backendu)
+    # Backend, Redis i Postgres NIE są wystawione bezpośrednio przez Ingress
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 8080
+
+# Uruchomienie lokalne (kind/minikube):
+#   kubectl port-forward svc/frontend 8080:8080 -n shop
+#   a następnie: http://localhost:8080
+#
+# Alternatywnie z Ingress na kind:
+#   kind create cluster --config kind-config.yaml  (z extraPortMappings)
+#   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml

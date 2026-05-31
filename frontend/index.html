@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🛒 Product Shop — Kubernetes Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; color: #1a202c; }
+    header { background: #2d3748; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    header h1 { font-size: 1.5rem; }
+    .badge { background: #48bb78; padding: .2rem .7rem; border-radius: 999px; font-size: .8rem; }
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #2d3748; }
+    form { display: flex; flex-wrap: wrap; gap: .75rem; }
+    form input, form textarea { padding: .6rem .9rem; border: 1px solid #cbd5e0; border-radius: 8px; font-size: .95rem; flex: 1; min-width: 160px; }
+    form button { background: #4299e1; color: #fff; border: none; padding: .6rem 1.4rem; border-radius: 8px; cursor: pointer; font-size: .95rem; white-space: nowrap; }
+    form button:hover { background: #3182ce; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #edf2f7; padding: .7rem 1rem; text-align: left; font-size: .85rem; color: #718096; }
+    tbody tr { border-bottom: 1px solid #edf2f7; }
+    tbody tr:hover { background: #f7fafc; }
+    td { padding: .7rem 1rem; font-size: .9rem; }
+    .pill { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+    .pill.in  { background: #c6f6d5; color: #276749; }
+    .pill.out { background: #fed7d7; color: #9b2c2c; }
+    .del-btn { background: none; border: none; cursor: pointer; color: #e53e3e; font-size: 1.1rem; }
+    #msg { padding: .5rem 1rem; border-radius: 8px; display: none; margin-top: .5rem; font-size: .9rem; }
+    #msg.ok  { background: #c6f6d5; color: #22543d; display: block; }
+    #msg.err { background: #fed7d7; color: #822727; display: block; }
+    .stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .stat-box { flex: 1; background: #ebf8ff; border-radius: 8px; padding: .9rem 1.2rem; min-width: 130px; }
+    .stat-box .val { font-size: 1.8rem; font-weight: 700; color: #2b6cb0; }
+    .stat-box .lbl { font-size: .8rem; color: #4a5568; }
+    footer { text-align: center; padding: 2rem; color: #a0aec0; font-size: .8rem; }
+  </style>
+</head>
+<body>
+<header>
+  <span style="font-size:1.8rem">🛒</span>
+  <h1>Product Shop</h1>
+  <span class="badge">Kubernetes Demo</span>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="card">
+    <h2>📊 Statystyki</h2>
+    <div class="stats">
+      <div class="stat-box"><div class="val" id="st-total">–</div><div class="lbl">Produkty ogółem</div></div>
+      <div class="stat-box"><div class="val" id="st-instock">–</div><div class="lbl">Dostępne</div></div>
+      <div class="stat-box"><div class="val" id="st-outstock">–</div><div class="lbl">Niedostępne</div></div>
+    </div>
+  </div>
+
+  <!-- Add product -->
+  <div class="card">
+    <h2>➕ Dodaj produkt</h2>
+    <form id="addForm">
+      <input type="text"   id="name"        placeholder="Nazwa *"       required />
+      <input type="number" id="price"       placeholder="Cena (PLN) *"  step="0.01" min="0" required />
+      <input type="text"   id="description" placeholder="Opis (opcjonalnie)" />
+      <label style="display:flex;align-items:center;gap:.4rem;flex:0">
+        <input type="checkbox" id="in_stock" checked /> Dostępny
+      </label>
+      <button type="submit">Dodaj</button>
+    </form>
+    <div id="msg"></div>
+  </div>
+
+  <!-- Products table -->
+  <div class="card">
+    <h2>📦 Lista produktów <button onclick="loadProducts()" style="background:#e2e8f0;border:none;padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:.5rem">🔄 Odśwież</button></h2>
+    <div id="tableWrap"><p style="color:#a0aec0;text-align:center;padding:2rem">Ładowanie…</p></div>
+  </div>
+</main>
+
+<footer>
+  Product Shop · Kubernetes multi-service demo · FastAPI + PostgreSQL + Redis + Nginx
+</footer>
+
+<script>
+const API = '/api';
+
+async function loadProducts() {
+  try {
+    const r = await fetch(`${API}/products`);
+    if (!r.ok) throw new Error(r.statusText);
+    const products = await r.json();
+    renderTable(products);
+    updateStats(products);
+  } catch (e) {
+    document.getElementById('tableWrap').innerHTML =
+      `<p style="color:#e53e3e;text-align:center;padding:2rem">Błąd ładowania: ${e.message}</p>`;
+  }
+}
+
+function renderTable(products) {
+  if (!products.length) {
+    document.getElementById('tableWrap').innerHTML =
+      '<p style="color:#a0aec0;text-align:center;padding:2rem">Brak produktów. Dodaj pierwszy!</p>';
+    return;
+  }
+  const rows = products.map(p => `
+    <tr>
+      <td>${p.id}</td>
+      <td><strong>${esc(p.name)}</strong></td>
+      <td>${(+p.price).toFixed(2)} zł</td>
+      <td>${esc(p.description || '–')}</td>
+      <td><span class="pill ${p.in_stock ? 'in' : 'out'}">${p.in_stock ? 'Dostępny' : 'Brak'}</span></td>
+      <td>${p.created_at ? p.created_at.substring(0,16) : ''}</td>
+      <td><button class="del-btn" onclick="deleteProduct(${p.id})" title="Usuń">🗑️</button></td>
+    </tr>`).join('');
+  document.getElementById('tableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>#</th><th>Nazwa</th><th>Cena</th><th>Opis</th><th>Status</th><th>Dodano</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function updateStats(products) {
+  document.getElementById('st-total').textContent   = products.length;
+  document.getElementById('st-instock').textContent  = products.filter(p => p.in_stock).length;
+  document.getElementById('st-outstock').textContent = products.filter(p => !p.in_stock).length;
+}
+
+async function deleteProduct(id) {
+  if (!confirm(`Usunąć produkt #${id}?`)) return;
+  await fetch(`${API}/products/${id}`, { method: 'DELETE' });
+  loadProducts();
+}
+
+document.getElementById('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  msg.className = '';
+  const body = {
+    name:        document.getElementById('name').value.trim(),
+    price:       parseFloat(document.getElementById('price').value),
+    description: document.getElementById('description').value.trim(),
+    in_stock:    document.getElementById('in_stock').checked,
+  };
+  try {
+    const r = await fetch(`${API}/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    msg.textContent = `✅ Produkt „${body.name}" dodany!`;
+    msg.className = 'ok';
+    e.target.reset();
+    document.getElementById('in_stock').checked = true;
+    loadProducts();
+  } catch (err) {
+    msg.textContent = `❌ Błąd: ${err.message}`;
+    msg.className = 'err';
+  }
+  setTimeout(() => { msg.className = ''; }, 4000);
+});
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+loadProducts();
+setInterval(loadProducts, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "shop-backend",
+  "version": "1.0.0",
+  "description": "Product Shop REST API — Kubernetes multi-service demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js && echo '✓ Syntax OK'"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "redis": "^4.6.13",
+    "prom-client": "^15.1.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

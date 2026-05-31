@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: shop
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - migration-configmap.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+  - backend/deployment.yaml
+  - backend/service.yaml
+  - worker/deployment.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - ingress.yaml
+  - migration-job.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+
+# Wspólne etykiety dodawane do wszystkich zasobów
+commonLabels:
+  project: shop
+  managed-by: kustomize

@@ -1,0 +1,30 @@
+# Zależności — instalowane przez npm w etapie deps
+node_modules
+
+# Pliki Pythona (nieużywane — projekt przepisany na Node.js)
+*.py
+requirements.txt
+
+# Zmienne środowiskowe — NIGDY nie powinny trafiać do obrazu
+.env
+.env.*
+
+# Logi
+*.log
+logs/
+
+# Artefakty build
+dist/
+build/
+coverage/
+
+# Pliki testowe (kopiowane tylko do etapu test, nie do production)
+*.test.js
+*.spec.js
+__tests__/
+
+# Git i edytor
+.git/
+.gitignore
+.dockerignore
+README.md
