@@ -165,11 +165,7 @@ jobs:
       # Podsumowanie po wdrożeniu
       - name: Post-deploy status
         run: |
-          echo "=== Pody w namespace shop ==="
-          kubectl get pods -n shop
-          echo ""
-          echo "=== Deploymenty ==="
-          kubectl get deployments -n shop
-          echo ""
-          echo "=== Serwisy ==="
-          kubectl get services -n shop
+          echo "=== Deploy pipeline zakończony ==="
+          echo "Obrazy opublikowane w ghcr.io/olaborucka/shop/"
+          echo "Manifesty zbudowane przez Kustomize (overlays/prod)"
+          echo "Na prawdziwym klastrze: kubectl get pods -n shop"
