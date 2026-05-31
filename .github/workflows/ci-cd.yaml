@@ -141,13 +141,13 @@ jobs:
           echo "=== Zaktualizowane kustomization.yaml ==="
           cat kustomization.yaml
 
-      # Walidacja manifestów Kubernetes przez Kustomize (dry-run — bez klastra)
-      # --dry-run=client waliduje YAML lokalnie, bez połączenia z klastrem
-      # Na prawdziwym klastrze: usunąć --dry-run=client --validate=false
+      # Renderowanie manifestów przez Kustomize (bez połączenia z klastrem)
+      # kustomize build weryfikuje poprawność YAML i nakłada overlaye
+      # Na prawdziwym klastrze zastąpić: kubectl apply -k k8s/overlays/prod
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -k k8s/overlays/prod --dry-run=client --validate=false
-          echo "✓ Manifesty zwalidowane poprawnie (dry-run)"
+          kustomize build k8s/overlays/prod
+          echo "Manifesty wyrenderowane poprawnie przez Kustomize"
 
       # Weryfikacja rollout — wykonywana przy wdrożeniu na prawdziwy klaster
       - name: Verify rollout — backend
