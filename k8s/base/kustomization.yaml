@@ -23,6 +23,7 @@ resources:
   - pdb.yaml
 
 # Wspólne etykiety dodawane do wszystkich zasobów
-commonLabels:
-  project: shop
-  managed-by: kustomize
+labels:
+  - pairs:
+      project: shop
+      managed-by: kustomize

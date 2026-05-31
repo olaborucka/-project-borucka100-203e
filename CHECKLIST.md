@@ -355,9 +355,7 @@ kubectl rollout undo deployment/backend -n shop
 ## GitHub Actions CI/CD
 
 **Link do ostatniego udanego workflow:**  
-`https://github.com/olaborucka/shop-kubernetes/actions`
-
-> Zastąp `olaborucka/shop-kubernetes` nazwą swojego repozytorium GitHub.
+`https://github.com/olaborucka/-project-borucka100-203e/actions`
 
 ### Konfiguracja wymagana przed pierwszym uruchomieniem
 

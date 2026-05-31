@@ -77,10 +77,17 @@ spec:
             capabilities:
               drop: ["ALL"]
 
-          # Worker nie ma portu HTTP — liveness przez sprawdzenie procesu node
+          # Worker nie ma portu HTTP — proby przez sprawdzenie procesu node
           livenessProbe:
             exec:
               command: ["pgrep", "-x", "node"]
             initialDelaySeconds: 20
             periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            exec:
+              command: ["pgrep", "-x", "node"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
             failureThreshold: 3

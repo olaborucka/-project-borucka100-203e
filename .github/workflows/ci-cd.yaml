@@ -98,6 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    continue-on-error: true      # deploy wymaga prawdziwego klastra — nie blokuje pipeline
 
     steps:
       - name: Checkout repozytorium
