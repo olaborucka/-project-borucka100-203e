@@ -22,7 +22,7 @@ resources:
   - networkpolicy.yaml
   - pdb.yaml
 
-# Wspólne etykiety dodawane do wszystkich zasobów
+# wspólne etykiety dodawane do wszystkich zasobów
 labels:
   - pairs:
       project: shop

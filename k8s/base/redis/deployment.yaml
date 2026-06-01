@@ -29,8 +29,8 @@ spec:
             - name: redis
               containerPort: 6379
 
-          # Redis jako cache — nie wymaga uwierzytelniania w tej konfiguracji
-          # W produkcji dodać --requirepass z Secret
+          # redis jako cache — nie wymaga uwierzytelniania w tej konfiguracji
+          # w produkcji dodać --requirepass z Secret
           command: ["redis-server", "--save", "", "--appendonly", "no"]
 
           livenessProbe:

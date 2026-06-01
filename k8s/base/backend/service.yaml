@@ -7,8 +7,8 @@ metadata:
     app: backend
     component: api
 spec:
-  # ClusterIP — backend dostępny tylko wewnątrz klastra
-  # Frontend proxy i Ingress kierują ruch przez frontend nginx
+  # clusterIP — backend dostępny tylko wewnątrz klastra
+  # frontend proxy i Ingress kierują ruch przez frontend nginx
   type: ClusterIP
   selector:
     app: backend

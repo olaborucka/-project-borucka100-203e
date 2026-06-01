@@ -7,8 +7,8 @@ metadata:
     app: db-migrate
     component: migration
 spec:
-  # Job uruchamia migrację raz przy deployu
-  # Przy ponownym apply: kubectl delete job db-migrate -n shop && kubectl apply -f ...
+  # job uruchamia migrację raz przy deployu
+  # przy ponownym apply: kubectl delete job db-migrate -n shop && kubectl apply -f ...
   ttlSecondsAfterFinished: 300   # usuń Job 5 min po zakończeniu
   backoffLimit: 3                # max 3 próby przy błędzie
 

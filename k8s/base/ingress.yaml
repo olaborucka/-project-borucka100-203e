@@ -13,8 +13,8 @@ spec:
   ingressClassName: nginx
 
   rules:
-    # Ruch zewnętrzny → frontend (nginx wewnątrz kontenera proxy-uje /api/ do backendu)
-    # Backend, Redis i Postgres NIE są wystawione bezpośrednio przez Ingress
+    # ruch zewnętrzny → frontend (nginx wewnątrz kontenera proxy-uje /api/ do backendu)
+    # backend, Redis i Postgres NIE są wystawione bezpośrednio przez Ingress
     - http:
         paths:
           - path: /
@@ -25,10 +25,9 @@ spec:
                 port:
                   number: 8080
 
-# Uruchomienie lokalne (kind/minikube):
+# uruchomienie lokalne (kind/minikube):
 #   kubectl port-forward svc/frontend 8080:8080 -n shop
 #   a następnie: http://localhost:8080
-#
-# Alternatywnie z Ingress na kind:
+# alternatywnie z Ingress na kind:
 #   kind create cluster --config kind-config.yaml  (z extraPortMappings)
 #   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml

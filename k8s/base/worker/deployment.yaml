@@ -19,7 +19,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000          # user "app" z Dockerfile workera
+        runAsUser: 1000
         runAsGroup: 1000
 
       initContainers:
@@ -77,7 +77,7 @@ spec:
             capabilities:
               drop: ["ALL"]
 
-          # Worker nie ma portu HTTP — proby przez sprawdzenie procesu node
+          # worker nie ma portu HTTP — proby przez sprawdzenie procesu node
           livenessProbe:
             exec:
               command: ["pgrep", "-x", "node"]

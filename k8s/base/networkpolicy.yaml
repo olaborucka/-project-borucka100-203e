@@ -1,5 +1,5 @@
-# NetworkPolicy — izolacja sieciowa między podami (bonus +2.5%)
-# Zasada: domyślnie deny-all, zezwól tylko na wymagane połączenia
+# networkPolicy — izolacja sieciowa między podami (bonus +2.5%)
+# zasada: domyślnie deny-all, zezwól tylko na wymagane połączenia
 
 # ── 1. Postgres: akceptuje ruch TYLKO z backendu, workera i job migracji ──────
 apiVersion: networking.k8s.io/v1

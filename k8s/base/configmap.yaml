@@ -4,8 +4,8 @@ metadata:
   name: shop-config
   namespace: shop
 data:
-  # Konfiguracja niepoufna — zgodnie z wymaganiami projektu
-  # Hasła i tokeny są w Secret (shop-secret), nie tutaj
+  # konfiguracja niepoufna — zgodnie z wymaganiami projektu
+  # hasła i tokeny są w Secret (shop-secret), nie tutaj
   DB_HOST: "postgres"
   DB_PORT: "5432"
   DB_NAME: "shop"

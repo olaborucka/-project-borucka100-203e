@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Środowisko PROD — 3 repliki backendu, więcej zasobów, konkretny SHA obrazu
-# Użycie: kubectl apply -k k8s/overlays/prod
-# GitHub Actions nadpisuje tagi przez: kustomize edit set image ...
+# środowisko PROD — 3 repliki backendu, więcej zasobów, konkretny SHA obrazu
+# użycie: kubectl apply -k k8s/overlays/prod
+# gitHub Actions nadpisuje tagi przez: kustomize edit set image ...
 
 namespace: shop
 
@@ -14,7 +14,7 @@ patches:
   - path: backend-replicas-patch.yaml
   - path: resources-patch.yaml
 
-# GitHub Actions nadpisuje te tagi przez: kustomize edit set image
+# gitHub Actions nadpisuje te tagi przez: kustomize edit set image
 # np.: kustomize edit set image ghcr.io/olaborucka/shop/backend=ghcr.io/olaborucka/shop/backend:abc1234
 images:
   - name: ghcr.io/olaborucka/shop/backend

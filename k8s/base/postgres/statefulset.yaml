@@ -18,10 +18,10 @@ spec:
         app: postgres
         component: database
       annotations:
-        # Adnotacje Prometheus — obserwow alność
+        # adnotacje Prometheus — obserwow alność
         prometheus.io/scrape: "false"  # postgres nie udostępnia /metrics natywnie
     spec:
-      # SecurityContext — postgres uruchamia się jako user postgres (UID 999)
+      # securityContext — postgres uruchamia się jako user postgres (UID 999)
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -47,7 +47,7 @@ spec:
             - name: postgres
               containerPort: 5432
 
-          # Konfiguracja z ConfigMap i Secret
+          # konfiguracja z ConfigMap i Secret
           env:
             - name: POSTGRES_USER
               valueFrom:
@@ -71,7 +71,7 @@ spec:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
 
-          # Liveness probe — czy postgres żyje
+          # liveness probe — czy postgres żyje
           livenessProbe:
             exec:
               command: ['pg_isready', '-U', 'shop', '-d', 'shop']
@@ -80,7 +80,7 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
 
-          # Readiness probe — czy postgres jest gotowy na połączenia
+          # readiness probe — czy postgres jest gotowy na połączenia
           readinessProbe:
             exec:
               command: ['pg_isready', '-U', 'shop', '-d', 'shop']
@@ -100,8 +100,8 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
 
-  # PersistentVolumeClaim — trwałość danych bazy (wymaganie projektu)
-  # Dane pozostają dostępne po restarcie poda
+  # persistentVolumeClaim — trwałość danych bazy (wymaganie projektu)
+  # dane pozostają dostępne po restarcie poda
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
