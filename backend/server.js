@@ -18,7 +18,6 @@ const { Pool }   = require('pg');
 const { createClient } = require('redis');
 const promClient = require('prom-client');
 
-// ── Prometheus ────────────────────────────────────────────────────────────────
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({ register });
 
@@ -29,7 +28,6 @@ const httpRequests = new promClient.Counter({
   registers: [register],
 });
 
-// ── Konfiguracja z env (ConfigMap + Secret Kubernetes) ────────────────────────
 const PORT       = parseInt(process.env.PORT       || '3000');
 const DB_HOST    = process.env.DB_HOST    || 'postgres';
 const DB_PORT    = parseInt(process.env.DB_PORT    || '5432');
@@ -39,13 +37,11 @@ const DB_PASS    = process.env.DB_PASS    || 'shoppassword';
 const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379');
 
-// ── PostgreSQL pool ───────────────────────────────────────────────────────────
 const pool = new Pool({
   host: DB_HOST, port: DB_PORT,
   database: DB_NAME, user: DB_USER, password: DB_PASS,
 });
 
-// ── Redis client ──────────────────────────────────────────────────────────────
 let redis;
 
 async function connectRedis() {
@@ -55,16 +51,13 @@ async function connectRedis() {
   console.log('[redis] connected to', REDIS_HOST + ':' + REDIS_PORT);
 }
 
-// ── Express app ───────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 
-// ── /health — liveness probe ──────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'backend-api', version: process.env.VERSION || '1.0.0' });
 });
 
-// ── /ready — readiness probe (sprawdza DB + Redis) ───────────────────────────
 app.get('/ready', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -75,13 +68,11 @@ app.get('/ready', async (_req, res) => {
   }
 });
 
-// ── /metrics — Prometheus scraping ───────────────────────────────────────────
 app.get('/metrics', async (_req, res) => {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 });
 
-// ── Produkty ──────────────────────────────────────────────────────────────────
 const CACHE_KEY = 'products:all';
 const CACHE_TTL = 300; // 5 minut
 
@@ -157,7 +148,6 @@ app.delete('/products/:id', async (req, res) => {
   }
 });
 
-// ── Start serwera ─────────────────────────────────────────────────────────────
 (async () => {
   await connectRedis();
   app.listen(PORT, '0.0.0.0', () => {

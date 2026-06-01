@@ -1,27 +1,27 @@
-# Foldery wewnętrzne Cowork / Claude — nie commitować
+# foldery wewnętrzne Cowork / Claude — nie commitować
 -project-borucka100-203e/
 
-# Zależności Node.js — instalowane przez npm w CI/CD
+# zależności Node.js — instalowane przez npm w CI/CD
 node_modules/
 
-# Zmienne środowiskowe — NIGDY nie commitować prawdziwych haseł
+# zmienne środowiskowe — NIGDY nie commitować prawdziwych haseł
 .env
 .env.*
 *.env
 
-# Pliki Python (nieużywane — projekt przepisany na Node.js)
+# pliki Python (nieużywane — projekt przepisany na Node.js)
 *.py
 __pycache__/
 
-# Logi
+# logi
 *.log
 logs/
 
-# Artefakty build
+# artefakty build
 dist/
 build/
 coverage/
 
-# System
+# system
 .DS_Store
 Thumbs.db

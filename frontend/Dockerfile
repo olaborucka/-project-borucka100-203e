@@ -1,7 +1,5 @@
-# ══════════════════════════════════════════════════════════════════════════════
-# Frontend — Nginx reverse proxy + serwer plików statycznych
-# Non-root: nasłuchuje na porcie 8080, pid i cache w /tmp
-# ══════════════════════════════════════════════════════════════════════════════
+# frontend — Nginx reverse proxy + serwer plików statycznych
+# non-root: nasłuchuje na porcie 8080, pid i cache w /tmp
 FROM nginx:1.25-alpine AS production
 
 ARG BUILD_DATE
@@ -14,16 +12,16 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.description="Product Shop — Nginx reverse proxy + SPA" \
       org.opencontainers.image.licenses="MIT"
 
-# Usuń domyślną konfigurację nginxa
+# usuń domyślną konfigurację nginxa
 RUN rm -f /etc/nginx/conf.d/default.conf \
     && rm -f /usr/share/nginx/html/index.html
 
-# Skopiuj własne pliki
+# skopiuj własne pliki
 COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
 COPY --chown=nginx:nginx index.html /usr/share/nginx/html/index.html
 
-# Nginx w Alpine — user nginx (UID 101)
-# Port 8080 nie wymaga uprawnień root
+# nginx w Alpine — user nginx (UID 101)
+# port 8080 nie wymaga uprawnień root
 EXPOSE 8080
 
 # wget dostępny w nginx:alpine

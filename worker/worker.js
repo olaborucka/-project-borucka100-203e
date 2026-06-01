@@ -18,7 +18,6 @@ const INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL || '60') * 1000;
 
 const log = msg => console.log(`[${new Date().toISOString()}] ${msg}`);
 
-// ── PostgreSQL pool ───────────────────────────────────────────────────────────
 const pool = new Pool({
   host:     process.env.DB_HOST   || 'postgres',
   port:     parseInt(process.env.DB_PORT || '5432'),
@@ -27,11 +26,10 @@ const pool = new Pool({
   password: process.env.DB_PASS   || 'shoppassword',
 });
 
-// ── Główna pętla workera ──────────────────────────────────────────────────────
 async function run() {
   log(`Worker uruchomiony. Interwał: ${INTERVAL_MS / 1000}s`);
 
-  // Połącz z Redis (ponawiaj przy błędzie)
+  // połącz z Redis (ponawiaj przy błędzie)
   const redis = createClient({
     socket: {
       host: process.env.REDIS_HOST || 'redis',
@@ -44,7 +42,7 @@ async function run() {
 
   while (true) {
     try {
-      // Pobierz agregaty z PostgreSQL
+      // pobierz agregaty z PostgreSQL
       const { rows } = await pool.query(`
         SELECT
           COUNT(*)::int                                  AS total_products,
@@ -54,7 +52,7 @@ async function run() {
         FROM products
       `);
 
-      // Ostatnio dodany produkt
+      // ostatnio dodany produkt
       const newest = await pool.query(
         'SELECT id, name FROM products ORDER BY created_at DESC LIMIT 1'
       );
@@ -66,7 +64,7 @@ async function run() {
         worker_ts: Math.floor(Date.now() / 1000),
       };
 
-      // Zapisz do Redis (bez TTL — worker sam aktualizuje)
+      // zapisz do Redis (bez TTL — worker sam aktualizuje)
       await redis.set('stats:products', JSON.stringify(stats));
       log(`Statystyki zaktualizowane: ${JSON.stringify(stats)}`);
 

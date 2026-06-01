@@ -1,17 +1,13 @@
-# ══════════════════════════════════════════════════════════════════════════════
-# Etap 1 — deps: instalacja TYLKO zależności produkcyjnych
-# Cache Docker: rebuild tylko gdy zmieni się package.json
-# W repo z committed package-lock.json użyć: npm ci --only=production
-# ══════════════════════════════════════════════════════════════════════════════
+# etap 1 — deps: instalacja TYLKO zależności produkcyjnych
+# cache Docker: rebuild tylko gdy zmieni się package.json
+# w repo z committed package-lock.json użyć: npm ci --only=production
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev --no-fund --no-audit
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Etap 2 — test: weryfikacja składni JS przed buildem produkcyjnym
-# Jeśli npm test zakończy się błędem, etap production NIE zostanie zbudowany
-# ══════════════════════════════════════════════════════════════════════════════
+# etap 2 — test: weryfikacja składni JS przed buildem produkcyjnym
+# jeśli npm test zakończy się błędem, etap production NIE zostanie zbudowany
 FROM node:20-alpine AS test
 WORKDIR /app
 COPY package*.json ./
@@ -19,13 +15,11 @@ RUN npm install --no-fund --no-audit
 COPY server.js .
 RUN npm test
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Etap 3 — production: minimalny obraz non-root z tylko tym co potrzeba
-# ══════════════════════════════════════════════════════════════════════════════
+# etap 3 — production: minimalny obraz non-root z tylko tym co potrzeba
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Metadane OCI — przekazywane przez --build-arg w GitHub Actions
+# metadane OCI — przekazywane przez --build-arg w GitHub Actions
 ARG BUILD_DATE
 ARG VERSION=1.0.0
 ARG GIT_COMMIT=unknown
@@ -36,16 +30,16 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.description="Product Shop REST API — Kubernetes demo" \
       org.opencontainers.image.licenses="MIT"
 
-# Alpine: addgroup/adduser zamiast useradd (jak na laboratorium)
+# alpine: addgroup/adduser zamiast useradd (jak na laboratorium)
 # -S = systemowy (bez katalogu domowego, bez powłoki logowania)
 RUN addgroup -S app && adduser -S app -G app
 
-# Kopiujemy TYLKO node_modules z etapu deps — bez devDependencies
+# kopiujemy TYLKO node_modules z etapu deps — bez devDependencies
 COPY --from=deps --chown=app:app /app/node_modules ./node_modules
-# Kopiujemy kod aplikacji — nie kopiujemy .env, node_modules lokalnych itp.
+# kopiujemy kod aplikacji — nie kopiujemy .env, node_modules lokalnych itp.
 COPY --chown=app:app server.js .
 
-# Przełącz na użytkownika bez uprawnień root
+# przełącz na użytkownika bez uprawnień root
 USER app
 
 EXPOSE 3000
