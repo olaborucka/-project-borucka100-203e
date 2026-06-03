@@ -7,39 +7,29 @@ metadata:
     app: backend
     component: api
 spec:
-  replicas: 2                    # minimum 2 repliki — wymaganie projektu
-
-  # rolling update — zero-downtime deployment
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1                # max 1 dodatkowy pod podczas aktualizacji
-      maxUnavailable: 0          # żaden pod nie może być niedostępny
-
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      app: backend # selektor musi pasować do labeli w template.metadata.labels
-
+      app: backend
   template:
     metadata:
       labels:
         app: backend
         component: api
       annotations:
-        # adnotacje Prometheus — obserwow alność (bonus +2.5%)
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
         prometheus.io/path: "/metrics"
-
     spec:
-      # securityContext na poziomie poda
       securityContext:
-        runAsNonRoot: true       # nie uruchamiaj jako root
-        runAsUser: 1000          # user "app" z Dockerfile (adduser -S app)
+        runAsNonRoot: true
+        runAsUser: 1000
         runAsGroup: 1000
-
-      # initContainer — czeka aż postgres będzie gotowy na połączenia
-      # bez tego backend może crashować przy starcie klastra
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
@@ -47,49 +37,37 @@ spec:
             - sh
             - -c
             - |
-              echo "Waiting for postgres..."
               until nc -z postgres 5432; do
-                echo "postgres not ready, sleeping 2s..."
+                echo "waiting for postgres..."
                 sleep 2
               done
-              echo "postgres is ready!"
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
             allowPrivilegeEscalation: false
-
         - name: wait-for-redis
           image: busybox:1.36
           command:
             - sh
             - -c
             - |
-              echo "Waiting for redis..."
               until nc -z redis 6379; do
-                echo "redis not ready, sleeping 2s..."
+                echo "waiting for redis..."
                 sleep 2
               done
-              echo "redis is ready!"
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
             allowPrivilegeEscalation: false
-
       containers:
         - name: backend
-          # obraz budowany przez GitHub Actions i pushowany do ghcr.io
-          # kustomize nadpisuje ten tag przez: kustomize edit set image
           image: ghcr.io/olaborucka/shop/backend:latest
           ports:
             - name: http
               containerPort: 3000
-
-          # konfiguracja z ConfigMap (niepoufna)
           envFrom:
             - configMapRef:
                 name: shop-config
-
-          # hasła z Secret (poufna)
           env:
             - name: DB_USER
               valueFrom:
@@ -101,8 +79,6 @@ spec:
                 secretKeyRef:
                   name: shop-secret
                   key: DB_PASS
-
-          # liveness probe — czy serwer odpowiada (restart jeśli nie)
           livenessProbe:
             httpGet:
               path: /health
@@ -111,8 +87,6 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
-
-          # readiness probe — czy backend gotowy (ruch z Service dopiero po sukcesie)
           readinessProbe:
             httpGet:
               path: /ready
@@ -121,7 +95,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
-
           resources:
             requests:
               cpu: 100m
@@ -129,8 +102,8 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
-
-          # securityContext na poziomie kontenera
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesyste
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
